@@ -1,0 +1,7 @@
+Mod/Assemblies/
+**/bin
+**/obj
+**/*.userprefs
+**/*.csproj.user
+packages/
+.vs/

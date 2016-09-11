@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+    <CommunityCoreLibrary.ModHelperDef>
+        <defName>RimoteWorld</defName>
+
+        <ModName>RimoteWorld Server</ModName>
+
+        <minCCLVersion>0.15.0</minCCLVersion>
+
+        <SpecialInjectors>
+			<li>RimoteWorld.Server.Injectors.ServerInjector</li>
+        </SpecialInjectors>
+
+    </CommunityCoreLibrary.ModHelperDef>
+
+</Defs>

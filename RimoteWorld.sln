@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimoteWorld.Server", "RimoteWorld.Server\RimoteWorld.Server.csproj", "{9D882EBA-966A-4F16-A904-F548F6872A1A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimoteWorld.Client", "RimoteWorld.Client\RimoteWorld.Client.csproj", "{D7A2537B-EB11-46E0-85E0-E130BB722FD3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimoteWorld.Core", "RimoteWorld.Core\RimoteWorld.Core.csproj", "{C8346227-BBAC-4D47-BBAD-5D8637AF9646}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{3EF8DE48-27A1-4EBE-AE85-991A5CCEFFFF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimoteWorld.Client.Tests", "RimoteWorld.Client.Tests\RimoteWorld.Client.Tests.csproj", "{2C3EF6ED-783E-4488-8016-66914A8EDE50}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimoteWorld.Core.Tests", "RimoteWorld.Core.Tests\RimoteWorld.Core.Tests.csproj", "{5D0D3162-3081-4A13-BE76-121EFBA1575D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimoteWorld.FullStack.Tests", "RimoteWorld.FullStack.Tests\RimoteWorld.FullStack.Tests.csproj", "{E0027E7D-467D-45C5-969D-640702FB7910}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9D882EBA-966A-4F16-A904-F548F6872A1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D882EBA-966A-4F16-A904-F548F6872A1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D882EBA-966A-4F16-A904-F548F6872A1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D882EBA-966A-4F16-A904-F548F6872A1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7A2537B-EB11-46E0-85E0-E130BB722FD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7A2537B-EB11-46E0-85E0-E130BB722FD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7A2537B-EB11-46E0-85E0-E130BB722FD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7A2537B-EB11-46E0-85E0-E130BB722FD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8346227-BBAC-4D47-BBAD-5D8637AF9646}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8346227-BBAC-4D47-BBAD-5D8637AF9646}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8346227-BBAC-4D47-BBAD-5D8637AF9646}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8346227-BBAC-4D47-BBAD-5D8637AF9646}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C3EF6ED-783E-4488-8016-66914A8EDE50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C3EF6ED-783E-4488-8016-66914A8EDE50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C3EF6ED-783E-4488-8016-66914A8EDE50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C3EF6ED-783E-4488-8016-66914A8EDE50}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D0D3162-3081-4A13-BE76-121EFBA1575D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D0D3162-3081-4A13-BE76-121EFBA1575D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D0D3162-3081-4A13-BE76-121EFBA1575D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D0D3162-3081-4A13-BE76-121EFBA1575D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0027E7D-467D-45C5-969D-640702FB7910}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0027E7D-467D-45C5-969D-640702FB7910}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0027E7D-467D-45C5-969D-640702FB7910}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0027E7D-467D-45C5-969D-640702FB7910}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2C3EF6ED-783E-4488-8016-66914A8EDE50} = {3EF8DE48-27A1-4EBE-AE85-991A5CCEFFFF}
+		{5D0D3162-3081-4A13-BE76-121EFBA1575D} = {3EF8DE48-27A1-4EBE-AE85-991A5CCEFFFF}
+		{E0027E7D-467D-45C5-969D-640702FB7910} = {3EF8DE48-27A1-4EBE-AE85-991A5CCEFFFF}
+	EndGlobalSection
+EndGlobal
