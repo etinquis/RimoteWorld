@@ -79,10 +79,10 @@
   <!--del ""$(SolutionDir)Mod\Assemblies"-->
   <!--xcopy /I "$(TargetDir)*.dll" "$(SolutionDir)Mod\Assemblies"-->
   <!--<MakeDir Directories=""-->
-  <ItemGroup>
-    <OutputLibraries Include="$(TargetDir)*.dll" />
-  </ItemGroup>
   <Target Name="AfterBuild">
+    <CreateItem Include="$(TargetDir)\*.dll">
+      <Output TaskParameter="Include" ItemName="OutputLibraries" />
+    </CreateItem>
     <RemoveDir Directories="$(SolutionDir)Mod\Assemblies" />
     <MakeDir Directories="$(SolutionDir)Mod\Assemblies" />
     <Copy SourceFiles="@(OutputLibraries)" DestinationFiles="@(OutputLibraries->'$(SolutionDir)Mod\Assemblies\%(Filename)%(Extension)')" />
