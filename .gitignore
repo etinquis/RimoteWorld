@@ -5,3 +5,4 @@ Mod/Assemblies/
 **/*.csproj.user
 packages/
 .vs/
+**/.DS_Store
