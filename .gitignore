@@ -5,3 +5,5 @@ Mod/Assemblies/
 **/*.csproj.user
 packages/
 .vs/
+RimWorld.targets
+RimoteWorld.FullStack.Tests/app.config

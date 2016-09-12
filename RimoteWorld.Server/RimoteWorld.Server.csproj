@@ -34,13 +34,14 @@
     <WarningLevel>4</WarningLevel>
     <NoStdLib>false</NoStdLib>
   </PropertyGroup>
+  <Import Project="..\RimWorld.targets" />
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\ThirdParty\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(RimWorldPath)$(RimWorldManagedPath)\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Community Core Library">
-      <HintPath>..\ThirdParty\Community Core Library.dll</HintPath>
+      <HintPath>$(CCLModPath)\Assemblies\Community Core Library.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Polenter.SharpSerializer, Version=2.20.0.0, Culture=neutral, PublicKeyToken=8f4f20011571ee5f, processorArchitecture=MSIL">
@@ -49,7 +50,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
-      <HintPath>..\ThirdParty\UnityEngine.dll</HintPath>
+      <HintPath>$(RimWorldPath)$(RimWorldManagedPath)\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

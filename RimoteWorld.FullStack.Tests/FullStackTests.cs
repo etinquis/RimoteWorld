@@ -7,7 +7,11 @@ using System.Reflection;
 using RimoteWorld.Client.API;
 using RimoteWorld.Client.API.Remote;
 using System.Linq;
+using System.Threading;
 using RimoteWorld.Core.Messaging.Instancing.UI;
+using System.IO;
+using System.Collections.Generic;
+using System.Configuration;
 
 namespace RimoteWorld.FullStack.Tests
 {
@@ -15,24 +19,142 @@ namespace RimoteWorld.FullStack.Tests
     public class FullStackTests
     {
         private Process RimWorldProcess = null;
+
+        private static readonly DirectoryInfo RimWorldPath =
+            new DirectoryInfo(ConfigurationSettings.AppSettings.Get("RimWorldPath"));
+        private static readonly Version ExpectedRimWorldVersion =
+            Version.Parse(ConfigurationSettings.AppSettings.Get("RimWorldVersion"));
+        private static readonly string RimWorldExeName =
+            ConfigurationSettings.AppSettings.Get("RimWorldExeName");
+
+        private static readonly DirectoryInfo ServerModFolder =
+            new DirectoryInfo(ConfigurationSettings.AppSettings.Get("ServerModPath"));
+        private static readonly Version ExpectedRimoteWorldVersion =
+            Assembly.GetAssembly(typeof(IServerAPI)).GetName().Version;
+
+        private static readonly DirectoryInfo CCLModFolder =
+            new DirectoryInfo(ConfigurationSettings.AppSettings.Get("CCLModPath"));
+        private static readonly Version ExpectedCCLVersion =
+            Version.Parse(ConfigurationSettings.AppSettings.Get("CCLVersion"));
+
+        private DirectoryInfo ModsFolder;
+        private DirectoryInfo StashedModsFolder;
+
+        private IEnumerable<DirectoryInfo> NonCoreMods(DirectoryInfo modsFolder)
+        {
+            foreach (var folder in modsFolder.EnumerateDirectories())
+            {
+                if (!folder.Name.Equals("Core", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    yield return folder;
+                }
+            }
+        }
+
+        [TestFixtureSetUp]
+        public void FixtureSetUp()
+        {
+            if (!RimWorldPath.Exists)
+            {
+                Console.WriteLine(
+                    "RimWorldPath is not valid. Set it to your RimWorld install path in RimWorld.config");
+                Assert.Inconclusive();
+            }
+
+            var rimWorldReportedVersionFile = RimWorldPath.GetFiles().FirstOrDefault(f => f.Name.Equals("Version.txt"));
+            if (rimWorldReportedVersionFile.Exists)
+            {
+                using (var fStream = new StreamReader(rimWorldReportedVersionFile.OpenRead()))
+                {
+                    var versionString = fStream.ReadLine();
+
+                    Version reportedVersion;
+                    if (Version.TryParse(versionString, out reportedVersion))
+                    {
+                        if (reportedVersion != ExpectedRimWorldVersion)
+                        {
+                            Console.WriteLine(
+                                "Warning:: RimWorld Version.txt does not match ExpectedRimWorldVersion.  This might mean that ExpectedRimWorldVersion is not up-to-date.");
+                        }
+                    }
+                }
+            }
+
+
+
+            ModsFolder = RimWorldPath.GetDirectories().FirstOrDefault(dir => dir.Name.Equals("Mods"));
+            if (!ModsFolder.Exists)
+            {
+                Assert.Inconclusive("Mods folder can't be found beside RimWorldExe");
+            }
+
+            StashedModsFolder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
+            foreach (var mod in NonCoreMods(ModsFolder))
+            {
+                Console.WriteLine("Found non-core mod installed; stashing it to {0} to restore later",
+                    StashedModsFolder.FullName);
+                mod.MoveTo(Path.Combine(StashedModsFolder.FullName, mod.Name));
+            }
+
+
+            ServerModFolder.CopyTo(Path.Combine(ModsFolder.FullName, ServerModFolder.Name));
+            CCLModFolder.CopyTo(Path.Combine(ModsFolder.FullName, CCLModFolder.Name));
+
+            var os = Environment.OSVersion;
+            FileInfo modsConfig = null;
+            switch (os.Platform)
+            {
+                case PlatformID.MacOSX:
+                {
+                    modsConfig = new FileInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "RimWorld", "Config", "ModsConfig.xml"));
+                    break;
+                }
+                case PlatformID.Unix:
+                {
+                    modsConfig =
+                        new FileInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                            ".config", "unity3d", "Ludeon Studios", "RimWorld", "Config", "ModsConfig.xml"));
+                    break;
+                }
+                default:
+                {
+                    modsConfig =
+                        new FileInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                            "AppData", "LocalLow", "Ludeon Studios", "RimWorld", "Config", "ModsConfig.xml"));
+                    break;
+                }
+            }
+
+            using (var writer = modsConfig.CreateText())
+            {
+                writer.WriteLine("<?xml version = \"1.0\" encoding = \"utf-8\"?>");
+                writer.WriteLine("<ModsConfigData>");
+                writer.WriteLine("<buildNumber>{0}</buildNumber>", ExpectedRimWorldVersion.Build);
+                writer.WriteLine("<activeMods>");
+                writer.WriteLine("<li>Core</li>");
+                writer.WriteLine("<li>{0}</li>", CCLModFolder.Name);
+                writer.WriteLine("<li>{0}</li>", ServerModFolder.Name);
+                writer.WriteLine("</activeMods>");
+                writer.WriteLine("</ModsConfigData>");
+            }
+        }
+
         [SetUp]
         public void SetUp()
         {
-            foreach (var runningProcess in Process.GetProcessesByName("RimWorldWin.exe"))
-            {
-                runningProcess.Kill();
-            }
-
+            var RimWorldExe =
+                RimWorldPath.GetFiles()
+                    .First(f => f.Name.StartsWith(RimWorldExeName, StringComparison.InvariantCultureIgnoreCase));
             RimWorldProcess = new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
-                    FileName = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin.exe"
+                    FileName = RimWorldExe.FullName
                 }
             };
             RimWorldProcess.Start();
             
-            System.Threading.Thread.Sleep(TimeSpan.FromSeconds(10)); // startup time
+            Thread.Sleep(TimeSpan.FromSeconds(10)); // startup time
         }
 
         [TearDown]
@@ -44,13 +166,23 @@ namespace RimoteWorld.FullStack.Tests
             }
         }
 
+        [TestFixtureTearDown]
+        public void FixtureTearDown()
+        {
+            foreach (var mod in NonCoreMods(ModsFolder))
+            {
+                mod.Delete(true);
+            }
+
+            foreach (var mod in StashedModsFolder.EnumerateDirectories())
+            {
+                mod.MoveTo(Path.Combine(ModsFolder.FullName, mod.Name));
+            }
+        }
+
         [TestFixture]
         public class ServerAPITests : FullStackTests
         {
-            private static readonly Version ExpectedRimWorldVersion = new Version(0, 15, 1284, 139); // version.txt says build 134?
-            private static readonly Version ExpectedRimoteWorldVersion = Assembly.GetAssembly(typeof(IServerAPI)).GetName().Version;
-            private static readonly Version ExpectedCCLVersion = new Version(0, 15, 0);
-
             private IRemoteServerAPI _remoteServerAPI = null;
 
             [SetUp]
@@ -71,7 +203,7 @@ namespace RimoteWorld.FullStack.Tests
                 var task = _remoteServerAPI.GetRimWorldVersion();
                 Assert.That(task.Wait(TimeSpan.FromMilliseconds(300)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
-                var version = (System.Version)task.Result;
+                var version = (Version)task.Result;
                 Assert.That(version, Is.EqualTo(ExpectedRimWorldVersion));
             }
 
@@ -81,7 +213,7 @@ namespace RimoteWorld.FullStack.Tests
                 var task = _remoteServerAPI.GetRimoteWorldVersion();
                 Assert.That(task.Wait(TimeSpan.FromMilliseconds(300)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
-                var version = (System.Version)task.Result;
+                var version = (Version)task.Result;
                 Assert.That(version, Is.EqualTo(ExpectedRimoteWorldVersion));
             }
 
@@ -91,7 +223,7 @@ namespace RimoteWorld.FullStack.Tests
                 var task = _remoteServerAPI.GetCCLVersion();
                 Assert.That(task.Wait(TimeSpan.FromMilliseconds(300)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
-                var version = (System.Version)task.Result;
+                var version = (Version)task.Result;
                 Assert.That(version, Is.EqualTo(ExpectedCCLVersion));
             }
         }
@@ -143,7 +275,7 @@ namespace RimoteWorld.FullStack.Tests
             [Test]
             public void QuitToOs()
             {
-                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(40));
+                Thread.Sleep(TimeSpan.FromSeconds(40));
 
                 var task = _remoteMainMenuAPI.GetAvailableMainMenuOptions();
                 Assert.That(task.Wait(TimeSpan.FromMilliseconds(500)), Is.True);
@@ -153,7 +285,7 @@ namespace RimoteWorld.FullStack.Tests
                 var QuitToOs = options.First(opt => opt.MenuOptionText.Equals("Quit To OS", StringComparison.InvariantCultureIgnoreCase));
                 var clickTask = _remoteMainMenuAPI.ClickMainMenuOption(QuitToOs);
 
-                Assert.That(clickTask.Wait(TimeSpan.FromMilliseconds(500)), Is.True);
+                Assert.That(clickTask.Wait(TimeSpan.FromMilliseconds(600)), Is.True);
                 Assert.That(() => clickTask.Wait(), Throws.Nothing);
                 Assert.That(RimWorldProcess.WaitForExit((int) TimeSpan.FromSeconds(20).TotalMilliseconds), Is.True);
             }
