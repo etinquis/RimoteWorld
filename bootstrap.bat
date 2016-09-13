@@ -54,31 +54,8 @@ echo :
 echo|set /p="> "
 set /p CCLVersion=
 
-echo ^<^?xml version=^"1.0^" encoding=^"utf-8^" ^?^> 				 																						 > RimWorld.targets
-echo ^<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"^>																				>> RimWorld.targets
-echo ^<PropertyGroup^> 																																		>> RimWorld.targets
-echo 	^<RimWorldPath^>%RimWorldPath%\^</RimWorldPath^> 																									>> RimWorld.targets
-echo 	^<RimWorldVersion^>%RimWorldVersion%^<^/RimWorldVersion^> 																							>> RimWorld.targets
-echo 	^<RimWorldExeName^>RimWorldWin^<^/RimWorldExeName^> 																								>> RimWorld.targets
-echo 	^<RimWorldManagedPath^>$(RimWorldExeName)_Data\Managed\^</RimWorldManagedPath^>																		>> RimWorld.targets
-echo 	^<RimWorldManagedPath Condition=" '$(OS)' == 'Unix' AND Exists ('/Library/Frameworks') "^>Contents\Resources\Data\Managed\^</RimWorldManagedPath^>	>> RimWorld.targets
-echo 	^<ServerModPath^>%~dp0Mod\^<^/ServerModPath^> 																										>> RimWorld.targets
-echo 	^<CCLModPath^>%CCLModPath%\^<^/CCLModPath^>		 																									>> RimWorld.targets
-echo 	^<CCLVersion^>%CCLVersion%^<^/CCLVersion^> 																											>> RimWorld.targets
-echo ^<^/PropertyGroup^> 																																	>> RimWorld.targets
-echo ^</Project^>																																			>> RimWorld.targets
-
-echo ^<^?xml version=^"1.0^" encoding=^"utf-8^" ^?^> 				 						 > RimoteWorld.FullStack.Tests\app.config
-echo ^<^configuration^> 				 													>> RimoteWorld.FullStack.Tests\app.config
-echo 	^<^appSettings^> 				 													>> RimoteWorld.FullStack.Tests\app.config
-echo 		^<^add key="RimWorldPath" value="%RimWorldPath%\" /^> 							>> RimoteWorld.FullStack.Tests\app.config
-echo 		^<^add key="RimWorldVersion" value="%RimWorldVersion%" /^>						>> RimoteWorld.FullStack.Tests\app.config
-echo 		^<^add key="RimWorldExeName" value="RimWorldWin.exe" /^>						>> RimoteWorld.FullStack.Tests\app.config
-echo 		^<^add key="ServerModPath" value="%~dp0Mod\" /^> 								>> RimoteWorld.FullStack.Tests\app.config
-echo 		^<^add key="CCLModPath" value="%CCLModPath%" /^> 								>> RimoteWorld.FullStack.Tests\app.config
-echo 		^<^add key="CCLVersion" value="%CCLVersion%" /^> 								>> RimoteWorld.FullStack.Tests\app.config
-echo 	^<^/appSettings^> 				 													>> RimoteWorld.FullStack.Tests\app.config
-echo ^<^/configuration^> 				 													>> RimoteWorld.FullStack.Tests\app.config
+call Tools\generate.targets.bat "RimWorld.targets" "%RimWorldPath%" "%RimWorldVersion%" "%CCLModPath%" "%CCLVersion%"
+call Tools\generate.appconfig.bat "RimoteWorld.FullStack.Tests\app.config" "%RimWorldPath%" "%RimWorldVersion%" "%CCLModPath%" "%CCLVersion%"
 
 goto :eof
 
