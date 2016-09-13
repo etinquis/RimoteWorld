@@ -93,11 +93,12 @@ namespace RimoteWorld.FullStack.Tests
             {
                 Console.WriteLine("Found non-core mod installed; stashing it to {0} to restore later",
                     StashedModsFolder.FullName);
-                mod.MoveTo(Path.Combine(StashedModsFolder.FullName, mod.Name));
+                mod.CopyTo(Path.Combine(StashedModsFolder.FullName, mod.Name));
+                mod.Delete();
             }
 
 
-            ServerModFolder.CopyTo(Path.Combine(ModsFolder.FullName, ServerModFolder.Name));
+            ServerModFolder.CopyTo(Path.Combine(ModsFolder.FullName, "RimoteWorld.Server"));
             CCLModFolder.CopyTo(Path.Combine(ModsFolder.FullName, CCLModFolder.Name));
 
             var os = Environment.OSVersion;
@@ -133,7 +134,7 @@ namespace RimoteWorld.FullStack.Tests
                 writer.WriteLine("<activeMods>");
                 writer.WriteLine("<li>Core</li>");
                 writer.WriteLine("<li>{0}</li>", CCLModFolder.Name);
-                writer.WriteLine("<li>{0}</li>", ServerModFolder.Name);
+                writer.WriteLine("<li>{0}</li>", "RimoteWorld.Server");
                 writer.WriteLine("</activeMods>");
                 writer.WriteLine("</ModsConfigData>");
             }
@@ -176,7 +177,8 @@ namespace RimoteWorld.FullStack.Tests
 
             foreach (var mod in StashedModsFolder.EnumerateDirectories())
             {
-                mod.MoveTo(Path.Combine(ModsFolder.FullName, mod.Name));
+                mod.CopyTo(Path.Combine(ModsFolder.FullName, mod.Name));
+                mod.Delete();
             }
         }
 
