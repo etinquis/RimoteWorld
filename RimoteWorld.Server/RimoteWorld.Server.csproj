@@ -41,7 +41,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Community Core Library">
-      <HintPath>$(CCLModPath)\Assemblies\Community Core Library.dll</HintPath>
+      <HintPath>$(CCLModPath)Assemblies\Community Core Library.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Polenter.SharpSerializer, Version=2.20.0.0, Culture=neutral, PublicKeyToken=8f4f20011571ee5f, processorArchitecture=MSIL">
