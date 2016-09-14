@@ -12,7 +12,7 @@ echo 	^<^appSettings^> 				 													>> %OutputFile%
 echo 		^<^add key="RimWorldPath" value="%RimWorldPath%\" /^> 							>> %OutputFile%
 echo 		^<^add key="RimWorldVersion" value="%RimWorldVersion%" /^>						>> %OutputFile%
 echo 		^<^add key="RimWorldExeName" value="RimWorldWin.exe" /^>						>> %OutputFile%
-echo 		^<^add key="ServerModPath" value="%~dp0Mod\" /^> 								>> %OutputFile%
+echo 		^<^add key="ServerModPath" value="%~dp0..\Mod" /^> 								>> %OutputFile%
 echo 		^<^add key="CCLModPath" value="%CCLModPath%" /^> 								>> %OutputFile%
 echo 		^<^add key="CCLVersion" value="%CCLVersion%" /^> 								>> %OutputFile%
 echo 	^<^/appSettings^> 				 													>> %OutputFile%
