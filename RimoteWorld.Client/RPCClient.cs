@@ -149,7 +149,7 @@ namespace RimoteWorld.Client
                 });
             }
 
-            var messageResult = await completionSource.Task;
+            var messageResult = await completionSource.Task.ConfigureAwait(false);
 
             var baseMessage = messageResult.GetValueOrThrow();
             if (baseMessage is ResponseWithErrorMessage)
@@ -213,7 +213,7 @@ namespace RimoteWorld.Client
                 });
             }
 
-            var messageResult = await completionSource.Task;
+            var messageResult = await completionSource.Task.ConfigureAwait(false);
 
             var baseMessage = messageResult.GetValueOrThrow();
             if (baseMessage is ResponseWithErrorMessage)
