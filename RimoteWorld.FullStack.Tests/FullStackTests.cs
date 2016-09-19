@@ -94,7 +94,7 @@ namespace RimoteWorld.FullStack.Tests
                 Console.WriteLine("Found non-core mod installed; stashing it to {0} to restore later",
                     StashedModsFolder.FullName);
                 mod.CopyTo(Path.Combine(StashedModsFolder.FullName, mod.Name));
-                mod.Delete();
+                mod.Delete(true);
             }
 
 
@@ -155,7 +155,7 @@ namespace RimoteWorld.FullStack.Tests
             };
             RimWorldProcess.Start();
             
-            Thread.Sleep(TimeSpan.FromSeconds(10)); // startup time
+            Thread.Sleep(TimeSpan.FromSeconds(20)); // startup time
         }
 
         [TearDown]
@@ -178,7 +178,7 @@ namespace RimoteWorld.FullStack.Tests
             foreach (var mod in StashedModsFolder.EnumerateDirectories())
             {
                 mod.CopyTo(Path.Combine(ModsFolder.FullName, mod.Name));
-                mod.Delete();
+                mod.Delete(true);
             }
         }
 
@@ -203,7 +203,7 @@ namespace RimoteWorld.FullStack.Tests
             public void GetRimWorldVersion()
             {
                 var task = _remoteServerAPI.GetRimWorldVersion();
-                Assert.That(task.Wait(TimeSpan.FromMilliseconds(300)), Is.True);
+                Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
                 var version = (Version)task.Result;
                 Assert.That(version, Is.EqualTo(ExpectedRimWorldVersion));
@@ -213,7 +213,7 @@ namespace RimoteWorld.FullStack.Tests
             public void GetRimoteWorldVersion()
             {
                 var task = _remoteServerAPI.GetRimoteWorldVersion();
-                Assert.That(task.Wait(TimeSpan.FromMilliseconds(300)), Is.True);
+                Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
                 var version = (Version)task.Result;
                 Assert.That(version, Is.EqualTo(ExpectedRimoteWorldVersion));
@@ -223,7 +223,7 @@ namespace RimoteWorld.FullStack.Tests
             public void GetCCLVersion()
             {
                 var task = _remoteServerAPI.GetCCLVersion();
-                Assert.That(task.Wait(TimeSpan.FromMilliseconds(300)), Is.True);
+                Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
                 var version = (Version)task.Result;
                 Assert.That(version, Is.EqualTo(ExpectedCCLVersion));
@@ -251,11 +251,11 @@ namespace RimoteWorld.FullStack.Tests
             public void GetAvailableMainMenuOptions()
             {
                 var task = _remoteMainMenuAPI.GetAvailableMainMenuOptions();
-                Assert.That(task.Wait(TimeSpan.FromMilliseconds(300)), Is.True);
+                Assert.That(task.Wait(TimeSpan.FromSeconds(12)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
                 var options = task.Result;
 
-                Assert.That(options.Length, Is.EqualTo(9));
+                Assert.That(options.Length, Is.GreaterThanOrEqualTo(7));
 
                 Func<string, MainMenuOptionLocator> getOption = (string label) =>
                 {
@@ -263,12 +263,13 @@ namespace RimoteWorld.FullStack.Tests
                         opt => opt.MenuOptionText.Equals(label, StringComparison.InvariantCultureIgnoreCase));
                 };
 
-                Assert.That(() => getOption("Restart Now"), Throws.Nothing);
-                Assert.That(() => getOption("Quick Start"), Throws.Nothing);
+                //Assert.That(() => getOption("Restart Now"), Throws.Nothing);
+                //Assert.That(() => getOption("Quick Start"), Throws.Nothing);
                 Assert.That(() => getOption("New colony"), Throws.Nothing);
-                Assert.That(() => getOption("Load game"), Throws.Nothing);
+                //Assert.That(() => getOption("Load game"), Throws.Nothing);
                 Assert.That(() => getOption("Options"), Throws.Nothing);
                 Assert.That(() => getOption("Mods"), Throws.Nothing);
+                Assert.That(() => getOption("Mod Options"), Throws.Nothing);
                 Assert.That(() => getOption("Mod Help"), Throws.Nothing);
                 Assert.That(() => getOption("Credits"), Throws.Nothing);
                 Assert.That(() => getOption("Quit To OS"), Throws.Nothing);
@@ -277,19 +278,19 @@ namespace RimoteWorld.FullStack.Tests
             [Test]
             public void QuitToOs()
             {
-                Thread.Sleep(TimeSpan.FromSeconds(40));
+                Thread.Sleep(TimeSpan.FromSeconds(60));
 
                 var task = _remoteMainMenuAPI.GetAvailableMainMenuOptions();
-                Assert.That(task.Wait(TimeSpan.FromMilliseconds(500)), Is.True);
+                Assert.That(task.Wait(TimeSpan.FromSeconds(12)), Is.True);
                 Assert.That(() => task.Result, Throws.Nothing);
                 var options = task.Result;
 
                 var QuitToOs = options.First(opt => opt.MenuOptionText.Equals("Quit To OS", StringComparison.InvariantCultureIgnoreCase));
                 var clickTask = _remoteMainMenuAPI.ClickMainMenuOption(QuitToOs);
 
-                Assert.That(clickTask.Wait(TimeSpan.FromMilliseconds(600)), Is.True);
+                Assert.That(clickTask.Wait(TimeSpan.FromSeconds(12)), Is.True);
                 Assert.That(() => clickTask.Wait(), Throws.Nothing);
-                Assert.That(RimWorldProcess.WaitForExit((int) TimeSpan.FromSeconds(20).TotalMilliseconds), Is.True);
+                Assert.That(RimWorldProcess.WaitForExit((int) TimeSpan.FromSeconds(60).TotalMilliseconds), Is.True);
             }
         }
     }

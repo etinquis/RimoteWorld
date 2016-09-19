@@ -104,7 +104,7 @@ namespace RimoteWorld.Core.Tests
                         RemoteCall = "TestMethod"
                     }, Client.FromClientToServer);
 
-                    Assert.That(ServerRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(100)), Is.True,
+                    Assert.That(ServerRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(300)), Is.True,
                         "Timed out waiting for server to receive message");
 
                     Result<Message> receivedMessage = null;
@@ -129,7 +129,7 @@ namespace RimoteWorld.Core.Tests
                         RemoteCall = "TestMethod"
                     }, FromServerToClient);
 
-                    Assert.That(ClientRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(100)), Is.True,
+                    Assert.That(ClientRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(300)), Is.True,
                         "Timed out waiting for server to receive message");
 
                     Result<Message> receivedMessage = null;
@@ -157,7 +157,7 @@ namespace RimoteWorld.Core.Tests
 
                     {
                         // server handling
-                        Assert.That(ServerRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(100)), Is.True,
+                        Assert.That(ServerRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(800)), Is.True,
                             "Timed out waiting for server to receive message");
 
                         Result<Message> receivedMessageOnServer = null;
@@ -174,7 +174,7 @@ namespace RimoteWorld.Core.Tests
                     }
 
                     { // client handling
-                        Assert.That(ClientRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(100)), Is.True,
+                        Assert.That(ClientRecievedMessageSem.WaitOne(TimeSpan.FromMilliseconds(800)), Is.True,
                         "Timed out waiting for server to receive message");
 
                         Result<Message> clientReceivedMessage = null;
