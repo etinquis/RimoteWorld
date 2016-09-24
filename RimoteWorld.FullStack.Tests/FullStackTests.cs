@@ -12,6 +12,8 @@ using RimoteWorld.Core.Messaging.Instancing.UI;
 using System.IO;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
 
 namespace RimoteWorld.FullStack.Tests
 {
@@ -51,7 +53,7 @@ namespace RimoteWorld.FullStack.Tests
             }
         }
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void FixtureSetUp()
         {
             if (!RimWorldPath.Exists)
@@ -154,8 +156,6 @@ namespace RimoteWorld.FullStack.Tests
                 }
             };
             RimWorldProcess.Start();
-            
-            Thread.Sleep(TimeSpan.FromSeconds(20)); // startup time
         }
 
         [TearDown]
@@ -164,10 +164,11 @@ namespace RimoteWorld.FullStack.Tests
             if (!RimWorldProcess.HasExited)
             {
                 RimWorldProcess.Kill();
+                Thread.Sleep(TimeSpan.FromSeconds(2));
             }
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void FixtureTearDown()
         {
             foreach (var mod in NonCoreMods(ModsFolder))
@@ -181,116 +182,163 @@ namespace RimoteWorld.FullStack.Tests
                 mod.Delete(true);
             }
         }
+        
+        IEnumerable<Task<GameState>> PollGameState(IRemoteServerAPI serverApi)
+        {
+            Stopwatch timer = new Stopwatch();
+            while (true)
+            {
+                timer.Restart();
+                yield return serverApi.GetRimWorldGameState();
+                Console.WriteLine("GetRimWorldGameState took {0}", timer.Elapsed);
+            }
+        }
 
         [TestFixture]
-        public class ServerAPITests : FullStackTests
+        public class PreInitialization : FullStackTests
         {
             private IRemoteServerAPI _remoteServerAPI = null;
 
             [SetUp]
-            public void SetUp()
+            public new void SetUp()
             {
-                _remoteServerAPI = new ClientAPI();
+                _remoteServerAPI = ClientAPI.Connect("localhost", 40123).Result;
             }
 
             [TearDown]
-            public void TearDown()
+            public new void TearDown()
             {
                 (_remoteServerAPI as ClientAPI).Shutdown();
             }
 
             [Test]
-            public void GetRimWorldVersion()
+            public void WaitForMainMenuViaPolling()
             {
-                var task = _remoteServerAPI.GetRimWorldVersion();
-                Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
-                Assert.That(() => task.Result, Throws.Nothing);
-                var version = (Version)task.Result;
-                Assert.That(version, Is.EqualTo(ExpectedRimWorldVersion));
-            }
-
-            [Test]
-            public void GetRimoteWorldVersion()
-            {
-                var task = _remoteServerAPI.GetRimoteWorldVersion();
-                Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
-                Assert.That(() => task.Result, Throws.Nothing);
-                var version = (Version)task.Result;
-                Assert.That(version, Is.EqualTo(ExpectedRimoteWorldVersion));
-            }
-
-            [Test]
-            public void GetCCLVersion()
-            {
-                var task = _remoteServerAPI.GetCCLVersion();
-                Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
-                Assert.That(() => task.Result, Throws.Nothing);
-                var version = (Version)task.Result;
-                Assert.That(version, Is.EqualTo(ExpectedCCLVersion));
+                var statePolling = PollGameState(_remoteServerAPI).GetEnumerator();
+                statePolling.MoveNext();
+                while (statePolling.Current.Result != GameState.MainMenu) statePolling.MoveNext();
             }
         }
 
-        [TestFixture]
-        public class MainMenuAPITests : FullStackTests
+        public class PostInitialization : FullStackTests
         {
-            private IRemoteMainMenuAPI _remoteMainMenuAPI = null;
+            protected ClientAPI _clientAPI = null;
 
             [SetUp]
-            public void SetUp()
+            public new void SetUp()
             {
-                _remoteMainMenuAPI = new ClientAPI();
+                _clientAPI = ClientAPI.Connect("localhost", 40123).Result;
+                var statePolling = PollGameState(_clientAPI).GetEnumerator();
+                statePolling.MoveNext();
+                while (statePolling.Current.Result != GameState.MainMenu)
+                {
+                    statePolling.MoveNext();
+                    Thread.Sleep(TimeSpan.FromSeconds(2));
+                }
             }
 
             [TearDown]
-            public void TearDown()
+            public new void TearDown()
             {
-                (_remoteMainMenuAPI as ClientAPI).Shutdown();
+                _clientAPI.Shutdown();
             }
 
-            [Test]
-            public void GetAvailableMainMenuOptions()
+            [TestFixture]
+            public class ServerAPITests : PostInitialization
             {
-                var task = _remoteMainMenuAPI.GetAvailableMainMenuOptions();
-                Assert.That(task.Wait(TimeSpan.FromSeconds(12)), Is.True);
-                Assert.That(() => task.Result, Throws.Nothing);
-                var options = task.Result;
+                private IRemoteServerAPI _remoteServerAPI = null;
 
-                Assert.That(options.Length, Is.GreaterThanOrEqualTo(7));
-
-                Func<string, MainMenuOptionLocator> getOption = (string label) =>
+                [SetUp]
+                public new void SetUp()
                 {
-                    return options.First(
-                        opt => opt.MenuOptionText.Equals(label, StringComparison.InvariantCultureIgnoreCase));
-                };
+                    _remoteServerAPI = _clientAPI;
+                }
 
-                //Assert.That(() => getOption("Restart Now"), Throws.Nothing);
-                //Assert.That(() => getOption("Quick Start"), Throws.Nothing);
-                Assert.That(() => getOption("New colony"), Throws.Nothing);
-                //Assert.That(() => getOption("Load game"), Throws.Nothing);
-                Assert.That(() => getOption("Options"), Throws.Nothing);
-                Assert.That(() => getOption("Mods"), Throws.Nothing);
-                Assert.That(() => getOption("Mod Options"), Throws.Nothing);
-                Assert.That(() => getOption("Mod Help"), Throws.Nothing);
-                Assert.That(() => getOption("Credits"), Throws.Nothing);
-                Assert.That(() => getOption("Quit To OS"), Throws.Nothing);
+                [Test]
+                public void GetRimWorldVersion()
+                {
+                    var task = _remoteServerAPI.GetRimWorldVersion();
+                    Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
+                    Assert.That(() => task.Result, Throws.Nothing);
+                    var version = (Version)task.Result;
+                    Assert.That(version, Is.EqualTo(ExpectedRimWorldVersion));
+                }
+
+                [Test]
+                public void GetRimoteWorldVersion()
+                {
+                    var task = _remoteServerAPI.GetRimoteWorldVersion();
+                    Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
+                    Assert.That(() => task.Result, Throws.Nothing);
+                    var version = (Version)task.Result;
+                    Assert.That(version, Is.EqualTo(ExpectedRimoteWorldVersion));
+                }
+
+                [Test]
+                public void GetCCLVersion()
+                {
+                    var task = _remoteServerAPI.GetCCLVersion();
+                    Assert.That(task.Wait(TimeSpan.FromSeconds(20)), Is.True);
+                    Assert.That(() => task.Result, Throws.Nothing);
+                    var version = (Version)task.Result;
+                    Assert.That(version, Is.EqualTo(ExpectedCCLVersion));
+                }
             }
 
-            [Test]
-            public void QuitToOs()
+            [TestFixture]
+            public class MainMenuAPITests : PostInitialization
             {
-                Thread.Sleep(TimeSpan.FromSeconds(60));
+                private IRemoteMainMenuAPI _remoteMainMenuAPI = null;
 
-                var task = _remoteMainMenuAPI.GetAvailableMainMenuOptions();
-                Assert.That(task.Wait(TimeSpan.FromSeconds(12)), Is.True);
-                Assert.That(() => task.Result, Throws.Nothing);
-                var options = task.Result;
+                [SetUp]
+                public new void SetUp()
+                {
+                    _remoteMainMenuAPI = _clientAPI;
+                }
 
-                var QuitToOs = options.First(opt => opt.MenuOptionText.Equals("Quit To OS", StringComparison.InvariantCultureIgnoreCase));
-                var clickTask = _remoteMainMenuAPI.ClickMainMenuOption(QuitToOs);
+                [Test]
+                public void GetAvailableMainMenuOptions()
+                {
+                    var task = _remoteMainMenuAPI.GetAvailableMainMenuOptions();
+                    Assert.That(task.Wait(TimeSpan.FromSeconds(12)), Is.True);
+                    Assert.That(() => task.Result, Throws.Nothing);
+                    var options = task.Result;
 
-                Assert.That(clickTask.Wait(TimeSpan.FromSeconds(12)), Is.True);
-                Assert.That(() => clickTask.Wait(), Throws.Nothing);
-                Assert.That(RimWorldProcess.WaitForExit((int) TimeSpan.FromSeconds(60).TotalMilliseconds), Is.True);
+                    Assert.That(options.Length, Is.GreaterThanOrEqualTo(7));
+
+                    Func<string, MainMenuOptionLocator> getOption = (string label) =>
+                    {
+                        return options.First(
+                            opt => opt.MenuOptionText.Equals(label, StringComparison.InvariantCultureIgnoreCase));
+                    };
+
+                    //Assert.That(() => getOption("Restart Now"), Throws.Nothing);
+                    //Assert.That(() => getOption("Quick Start"), Throws.Nothing);
+                    Assert.That(() => getOption("New colony"), Throws.Nothing);
+                    //Assert.That(() => getOption("Load game"), Throws.Nothing);
+                    Assert.That(() => getOption("Options"), Throws.Nothing);
+                    Assert.That(() => getOption("Mods"), Throws.Nothing);
+                    Assert.That(() => getOption("Mod Options"), Throws.Nothing);
+                    Assert.That(() => getOption("Mod Help"), Throws.Nothing);
+                    Assert.That(() => getOption("Credits"), Throws.Nothing);
+                    Assert.That(() => getOption("Quit To OS"), Throws.Nothing);
+                }
+
+                [Test]
+                public void QuitToOs()
+                {
+                    var task = _remoteMainMenuAPI.GetAvailableMainMenuOptions();
+                    Assert.That(task.Wait(TimeSpan.FromSeconds(12)), Is.True);
+                    Assert.That(() => task.Result, Throws.Nothing);
+                    var options = task.Result;
+
+                    var QuitToOs = options.First(opt => opt.MenuOptionText.Equals("Quit To OS", StringComparison.InvariantCultureIgnoreCase));
+                    var clickTask = _remoteMainMenuAPI.ClickMainMenuOption(QuitToOs);
+
+                    Assert.That(clickTask.Wait(TimeSpan.FromSeconds(12)), Is.True);
+                    Assert.That(() => clickTask.Wait(), Throws.Nothing);
+                    Assert.That(RimWorldProcess.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds), Is.True);
+                }
             }
         }
     }

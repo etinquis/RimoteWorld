@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using RimoteWorld.Client;
 using RimoteWorld.Core;
+using RimoteWorld.Core.Messaging.Tcp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

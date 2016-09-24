@@ -12,9 +12,14 @@ namespace RimoteWorld.Client.API
     {
         private RPCClient _rpcClient;
 
-        public ClientAPI()
+        private ClientAPI(RPCClient rpc)
         {
-            _rpcClient = new RPCClient();
+            _rpcClient = rpc;
+        }
+
+        public static async Task<ClientAPI> Connect(string host, int port)
+        {
+            return new ClientAPI(await RPCClient.Connect("localhost", 40123).ConfigureAwait(false));
         }
 
         public void Shutdown()
@@ -25,6 +30,11 @@ namespace RimoteWorld.Client.API
         public void Dispose()
         {
             _rpcClient.Dispose();
+        }
+        
+        Task<GameState> IRemoteServerAPI.GetRimWorldGameState()
+        {
+            return _rpcClient.MakeRemoteStaticCall<IServerAPI, GameState>((api) => api.GetRimWorldGameState());
         }
 
         Version IClientAPI.GetRimoteWorldVersion()

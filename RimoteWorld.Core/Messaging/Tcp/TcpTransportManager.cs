@@ -1,4 +1,5 @@
 ﻿using Polenter.Serialization;
+using RimoteWorld.Core.Messaging.Tcp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,33 +8,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace RimoteWorld.Core
+namespace RimoteWorld.Core.Messaging.Tcp
 {
     public class TcpTransportManager
     {
-        public class TcpWriteError : Exception
-        {
-            public TcpClient ClientWithError { get; private set; }
-
-            public TcpWriteError(Exception innerException) : base("Tcp Write Error", innerException)
-            {
-                
-            }
-        }
-        public class TcpReadError : Exception
-        {
-            public TcpClient ClientWithError { get; private set; }
-
-            public TcpReadError(Exception innerException) : base("Tcp Read Error", innerException)
-            {
-
-            }
-        }
-
-        private Thread _writeThread = new Thread(WriteThreadProc);
-        private Thread _readThread = new Thread(ReadThreadProc);
-
-        private ManualResetEvent _shutdown = new ManualResetEvent(false);
         private WriteQueue _writeQueue = new WriteQueue();
         private MonitoredClientList _clientList = new MonitoredClientList();
 
@@ -54,9 +32,22 @@ namespace RimoteWorld.Core
 
         private class WriteQueue
         {
-            private object _queueLock = new object();
-            private Queue<PendingTcpWrite> _pendingWrites = new Queue<PendingTcpWrite>();
-            private ManualResetEvent _hasPendingWrites = new ManualResetEvent(false);
+            private readonly object _queueLock = new object();
+            private readonly Queue<PendingTcpWrite> _pendingWrites = new Queue<PendingTcpWrite>();
+            private readonly ManualResetEvent _hasPendingWrites = new ManualResetEvent(false);
+            private readonly Thread _thread = new Thread(WriteThreadProc);
+            private readonly ManualResetEvent _shutdownEvent = new ManualResetEvent(false);
+
+            public void Start()
+            {
+                _thread.Start(this);
+            }
+
+            public void ShutDown()
+            {
+                _shutdownEvent.Set();
+                _thread.Join();
+            }
 
             public void Enqueue(PendingTcpWrite pendingWrite)
             {
@@ -75,7 +66,7 @@ namespace RimoteWorld.Core
                 _hasPendingWrites.Set();
             }
 
-            public List<PendingTcpWrite> DequeueAll(TimeSpan timeout)
+            private List<PendingTcpWrite> DequeueAll(TimeSpan timeout)
             {
                 List<PendingTcpWrite> pendingWrites = new List<PendingTcpWrite>();
                 if (_hasPendingWrites.WaitOne(timeout))
@@ -88,20 +79,53 @@ namespace RimoteWorld.Core
                 }
                 return pendingWrites;
             }
-        }
 
-        private struct WriteThreadState
-        {
-            public ManualResetEvent ShutdownEvent;
-            public WriteQueue WriteQueue;
+            private static void WriteThreadProc(object istate)
+            {
+                var state = (WriteQueue)istate;
+
+                while (!state._shutdownEvent.WaitOne(0))
+                {
+                    var pendingWrites = state.DequeueAll(TimeSpan.FromSeconds(1));
+
+                    foreach (var pendingWrite in pendingWrites)
+                    {
+                        if (state._shutdownEvent.WaitOne(0)) return;
+
+                        try
+                        {
+                            pendingWrite.FromStream.WriteTo(pendingWrite.Client.GetStream());
+                        }
+                        catch (Exception ex)
+                        {
+                            pendingWrite.Callback(new TcpWriteError(ex));
+                            continue;
+                        }
+                        pendingWrite.Callback(pendingWrite.Client);
+                    }
+                }
+            }
         }
 
         private class MonitoredClientList
         {
-            private object _clientListLock = new object();
-            private object _clientListProcessLock = new object();
-            private List<MonitoredClient> _clientList = new List<MonitoredClient>();
-            private ManualResetEvent _clientAdded = new ManualResetEvent(false);
+            private readonly object _clientListLock = new object();
+            private readonly object _clientListProcessLock = new object();
+            private readonly List<MonitoredClient> _clientList = new List<MonitoredClient>();
+            private readonly ManualResetEvent _clientAdded = new ManualResetEvent(false);
+            private readonly Thread _thread = new Thread(ReadThreadProc);
+            private readonly ManualResetEvent _shutdownEvent = new ManualResetEvent(false);
+
+            public void Start()
+            {
+                _thread.Start(this);
+            }
+
+            public void ShutDown()
+            {
+                _shutdownEvent.Set();
+                _thread.Join();
+            }
 
             public void Add(MonitoredClient client)
             {
@@ -143,7 +167,7 @@ namespace RimoteWorld.Core
                 return clients;
             }
 
-            public void ForEachAvailable(Action<MonitoredClient> clientAction)
+            private void ForEachAvailable(Action<MonitoredClient> clientAction)
             {
                 MonitoredClient[] clients = RemoveDisconnectedClients().Where(c =>
                 {
@@ -165,37 +189,45 @@ namespace RimoteWorld.Core
                 }
             }
 
-            public bool WaitForNonEmptyAndAvailable(TimeSpan timeout)
+            private bool WaitForNonEmptyAndAvailable(TimeSpan timeout)
             {
                 return RemoveDisconnectedClients().Any(c => c.Client.Available > 0) || _clientAdded.WaitOne(timeout);
             }
-        }
 
-        private struct ReadThreadState
-        {
-            public ManualResetEvent ShutdownEvent;
-            public MonitoredClientList ClientList;
+            private static void ReadThreadProc(object istate)
+            {
+                var state = (MonitoredClientList)istate;
+
+                while (!state._shutdownEvent.WaitOne(0))
+                {
+                    if (state.WaitForNonEmptyAndAvailable(TimeSpan.FromSeconds(1)))
+                    {
+                        state.ForEachAvailable((client) =>
+                        {
+                            var obj = MessageSerializer.DeserializeFromStream(client.Client.GetStream());
+                            if (obj is Message)
+                            {
+                                ThreadPool.QueueUserWorkItem((o) =>
+                                {
+                                    client.Callback(client.Client, o as Message);
+                                }, obj);
+                            }
+                        });
+                    }
+                }
+            }
         }
 
         public void Start()
         {
-            _writeThread.Start(new WriteThreadState()
-            {
-                ShutdownEvent = _shutdown,
-                WriteQueue = _writeQueue
-            });
-            _readThread.Start(new ReadThreadState()
-            {
-                ShutdownEvent = _shutdown,
-                ClientList = _clientList
-            });
+            _clientList.Start();
+            _writeQueue.Start();
         }
 
         public void Shutdown()
         {
-            _shutdown.Set();
-            _writeThread.Join();
-            _readThread.Join();
+            _writeQueue.ShutDown();
+            _clientList.ShutDown();
         }
 
         public void MonitorClientForMessages(TcpClient client, Action<TcpClient, Result<Message>> callback)
@@ -228,55 +260,6 @@ namespace RimoteWorld.Core
                     callback(ex);
                 }
             });
-        }
-        
-        private static void WriteThreadProc(object istate)
-        {
-            var state = (WriteThreadState)istate;
-            
-            while (!state.ShutdownEvent.WaitOne(0))
-            {
-                var pendingWrites = state.WriteQueue.DequeueAll(TimeSpan.FromSeconds(1));
-
-                foreach (var pendingWrite in pendingWrites)
-                {
-                    if (state.ShutdownEvent.WaitOne(0)) return;
-
-                    try
-                    {
-                        pendingWrite.FromStream.WriteTo(pendingWrite.Client.GetStream());
-                    }
-                    catch (Exception ex)
-                    {
-                        pendingWrite.Callback(new TcpWriteError(ex));
-                        continue;
-                    }
-                    pendingWrite.Callback(pendingWrite.Client);
-                }
-            }
-        }
-
-        private static void ReadThreadProc(object istate)
-        {
-            var state = (ReadThreadState)istate;
-
-            while (!state.ShutdownEvent.WaitOne(0))
-            {
-                if (state.ClientList.WaitForNonEmptyAndAvailable(TimeSpan.FromSeconds(1)))
-                {
-                    state.ClientList.ForEachAvailable((client) =>
-                    {
-                        var obj = MessageSerializer.DeserializeFromStream(client.Client.GetStream());
-                        if (obj is Message)
-                        {
-                            ThreadPool.QueueUserWorkItem((o) =>
-                            {
-                                client.Callback(client.Client, o as Message);
-                            }, obj);
-                        }
-                    });
-                }
-            }
         }
     }
 }

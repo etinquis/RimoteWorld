@@ -77,20 +77,19 @@ namespace RimoteWorld.Core
 
     public abstract class ResponseMessage : Message
     {
-        public RequestMessage OriginalRequestMessage { get; set; }
+        public Message OriginalMessage { get; set; }
     }
 
     public class ResponseMessage<TAPI> : ResponseMessage
     {
         public RequestMessage<TAPI> TypedOriginalRequest
         {
-            get { return (RequestMessage<TAPI>) OriginalRequestMessage; }
+            get { return (RequestMessage<TAPI>)OriginalMessage; }
         }
     }
 
-    public class ResponseWithErrorMessage : Message
+    public class ResponseWithErrorMessage : ResponseMessage
     {
-        public Message OriginalMessage { get; set; }
         public string ErrorMessage { get; set; }
     }
 

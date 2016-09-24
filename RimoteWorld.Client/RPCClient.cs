@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Linq;
 using System.Collections.Concurrent;
 using RimoteWorld.Core.Messaging.Instancing;
+using RimoteWorld.Core.Messaging.Tcp;
 
 namespace RimoteWorld.Client
 {
@@ -13,36 +14,45 @@ namespace RimoteWorld.Client
     {
         private static ConcurrentDictionary<ulong, Action<Result<ResponseMessage>>> _pendingResponses = new ConcurrentDictionary<ulong, Action<Result<ResponseMessage>>>();
 
-        private Lazy<TcpClient> Socket;
-        private Lazy<TcpTransportManager> Manager;
+        private TcpClient _socket;
+        private TcpTransportManager _manager;
 
-        public RPCClient()
+        private RPCClient(TcpClient client, TcpTransportManager manager)
         {
-            Socket = new Lazy<TcpClient>(() =>
-            {
-                var client = new TcpClient();
-                client.Connect("localhost", 40123);
-                return client;
-            });
+            _socket = client;
+            _manager = manager;
+        }
 
-            Manager = new Lazy<TcpTransportManager>(() =>
+        public static async Task<RPCClient> Connect(string host, int port)
+        {
+            var manager = new TcpTransportManager();
+            var client = new TcpClient();
+            manager.MonitorClientForMessages(client, RecievedMessageFromServer);
+
+            while (true)
             {
-                var transportManager = new TcpTransportManager();
-                transportManager.MonitorClientForMessages(Socket.Value, RecievedMessageFromServer);
-                transportManager.Start();
-                return transportManager;
-            });
+                try
+                {
+                    await client.ConnectAsync(host, port);
+                    manager.Start();
+                    return new RPCClient(client, manager);
+                }
+                catch (Exception ex)
+                {
+                    
+                }
+            }
         }
 
         public void Dispose()
         {
-            Manager.Value.Shutdown();
-            Socket.Value.Close();
-        }
-
-        internal void Connect()
-        {
-            var mgr = Manager.Value;
+            _manager.Shutdown();
+            _socket.Close();
+            foreach (var pendingResponse in _pendingResponses)
+            {
+                pendingResponse.Value.Invoke(new Exception());
+            }
+            _pendingResponses.Clear();
         }
 
         private static void RecievedMessageFromServer(TcpClient client, Result<Message> messageResult)
@@ -52,7 +62,7 @@ namespace RimoteWorld.Client
                 var message = messageResult.GetValueOrThrow();
                 if (message is ResponseMessage)
                 {
-                    var originalRequest = (message as ResponseMessage).OriginalRequestMessage;
+                    var originalRequest = (message as ResponseMessage).OriginalMessage;
                     Action<Result<ResponseMessage>> pendingAction;
                     if (_pendingResponses.TryRemove(originalRequest.ID, out pendingAction))
                     {
@@ -125,7 +135,7 @@ namespace RimoteWorld.Client
 
                 sentMessage.RemoteCall = remoteCall;
 
-                Manager.Value.PostMessageToAsync(sentMessage, Socket.Value, postResult =>
+                _manager.PostMessageToAsync(sentMessage, _socket, postResult =>
                 {
                     try
                     {
@@ -189,7 +199,7 @@ namespace RimoteWorld.Client
 
                 sentMessage.RemoteCall = remoteCall;
 
-                Manager.Value.PostMessageToAsync(sentMessage, Socket.Value, postResult =>
+                _manager.PostMessageToAsync(sentMessage, _socket, postResult =>
                 {
                     try
                     {

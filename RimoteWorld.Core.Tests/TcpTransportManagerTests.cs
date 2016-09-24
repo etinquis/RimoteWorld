@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using RimoteWorld.Core.Messaging.Instancing;
+using RimoteWorld.Core.Messaging.Tcp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -168,7 +169,7 @@ namespace RimoteWorld.Core.Tests
 
                         Server.Manager.PostMessageToAsync(new ResponseWithResultMessage<TestAPI, bool>
                         {
-                            OriginalRequestMessage = requestMessageOnServer,
+                            OriginalMessage = requestMessageOnServer,
                             Result = true
                         }, FromServerToClient);
                     }
@@ -186,9 +187,10 @@ namespace RimoteWorld.Core.Tests
                         Assert.That(messageOnClient, Is.InstanceOf<ResponseWithResultMessage<TestAPI, bool>>());
                         var responseMessage = (ResponseWithResultMessage<TestAPI, bool>)messageOnClient;
                         Assert.That(responseMessage.Result, Is.True);
-                        Assert.That(responseMessage.OriginalRequestMessage.APIType, Is.EqualTo(typeof(TestAPI)));
-                        Assert.That(responseMessage.OriginalRequestMessage.TypeName, Is.EqualTo(typeof(TestAPI).Name));
-                        Assert.That(responseMessage.OriginalRequestMessage.RemoteCall, Is.EqualTo("TestMethod"));
+                        Assert.That(responseMessage.OriginalMessage, Is.InstanceOf<RequestMessage<TestAPI>>());
+                        Assert.That((responseMessage.OriginalMessage as RequestMessage<TestAPI>).APIType, Is.EqualTo(typeof(TestAPI)));
+                        Assert.That((responseMessage.OriginalMessage as RequestMessage<TestAPI>).TypeName, Is.EqualTo(typeof(TestAPI).Name));
+                        Assert.That((responseMessage.OriginalMessage as RequestMessage<TestAPI>).RemoteCall, Is.EqualTo("TestMethod"));
                     }
                 }
             }

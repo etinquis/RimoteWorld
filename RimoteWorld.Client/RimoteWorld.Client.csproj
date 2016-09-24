@@ -44,7 +44,6 @@
   <ItemGroup>
     <Compile Include="API\ClientAPI.cs" />
     <Compile Include="API\Remote\IRemoteMainMenuAPI.cs" />
-    <Compile Include="GlobalState.cs" />
     <Compile Include="API\Remote\IRemoteServerAPI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RPCClient.cs" />

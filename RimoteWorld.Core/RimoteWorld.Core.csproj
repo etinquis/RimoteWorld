@@ -45,6 +45,7 @@
     <Compile Include="Messaging\Instancing\UI\MainMenuOptionLocator.cs" />
     <Compile Include="Messaging\Message.cs" />
     <Compile Include="CoreTypes\PartialReadStream.cs" />
+    <Compile Include="Messaging\Tcp\Errors.cs" />
     <Compile Include="Messaging\Tcp\TcpTransportManager.cs" />
     <Compile Include="CoreTypes\Result.cs" />
     <Compile Include="Messaging\Serialization\Serializer.cs" />

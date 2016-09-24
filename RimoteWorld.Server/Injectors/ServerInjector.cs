@@ -10,6 +10,7 @@ using System.Threading;
 using System.Reflection;
 using RimoteWorld.Core.Extensions;
 using RimoteWorld.Core.Messaging.Instancing;
+using RimoteWorld.Core.Messaging.Tcp;
 
 namespace RimoteWorld.Server.Injectors
 {
@@ -147,7 +148,7 @@ namespace RimoteWorld.Server.Injectors
                                         var responseMessage =
                                             (ResponseMessage)
                                                 Activator.CreateInstance(responseType, new object[] {result});
-                                        responseMessage.OriginalRequestMessage = requestMessage;
+                                        responseMessage.OriginalMessage = requestMessage;
 
                                         server._manager.PostMessageToAsync(responseMessage, client);
                                     }
@@ -160,7 +161,7 @@ namespace RimoteWorld.Server.Injectors
                                         var responseMessage =
                                             (ResponseMessage)
                                                 Activator.CreateInstance(responseType, new object[] {result});
-                                        responseMessage.OriginalRequestMessage = requestMessage;
+                                        responseMessage.OriginalMessage = requestMessage;
 
                                         server._manager.PostMessageToAsync(responseMessage, client);
                                     }
@@ -173,7 +174,7 @@ namespace RimoteWorld.Server.Injectors
                                         var responseMessage =
                                             (ResponseMessage)
                                                 Activator.CreateInstance(responseType, null);
-                                        responseMessage.OriginalRequestMessage = requestMessage;
+                                        responseMessage.OriginalMessage = requestMessage;
 
                                         server._manager.PostMessageToAsync(responseMessage, client);
                                     }
