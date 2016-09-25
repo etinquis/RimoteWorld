@@ -24,6 +24,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <NoStdLib>false</NoStdLib>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -77,13 +78,10 @@
   </PropertyGroup>
   <Target Name="BeforeBuild">
   </Target>
-  <!--del ""$(SolutionDir)Mod\Assemblies"-->
-  <!--xcopy /I "$(TargetDir)*.dll" "$(SolutionDir)Mod\Assemblies"-->
-  <!--<MakeDir Directories=""-->
-  <ItemGroup>
-    <OutputLibraries Include="$(OutputPath)*.dll" />
-  </ItemGroup>
   <Target Name="AfterBuild">
+    <CreateItem Include="$(OutputPath)*.dll">
+      <Output TaskParameter="Include" ItemName="OutputLibraries" />
+    </CreateItem>
     <RemoveDir Directories="$(SolutionDir)Mod\Assemblies" />
     <MakeDir Directories="$(SolutionDir)Mod\Assemblies" />
     <Copy SourceFiles="@(OutputLibraries)" DestinationFiles="@(OutputLibraries->'$(SolutionDir)Mod\Assemblies\%(Filename)%(Extension)')" />
