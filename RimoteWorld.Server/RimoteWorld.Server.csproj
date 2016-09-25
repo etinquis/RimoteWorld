@@ -81,7 +81,7 @@
   <!--xcopy /I "$(TargetDir)*.dll" "$(SolutionDir)Mod\Assemblies"-->
   <!--<MakeDir Directories=""-->
   <ItemGroup>
-    <OutputLibraries Include="$(TargetDir)*.dll" />
+    <OutputLibraries Include="$(OutputPath)*.dll" />
   </ItemGroup>
   <Target Name="AfterBuild">
     <RemoveDir Directories="$(SolutionDir)Mod\Assemblies" />
